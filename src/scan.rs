@@ -101,8 +101,6 @@ fn find_classes(file: &syn::File) -> Result<HashSet<syn::Ident>, syn::Error> {
                 } else {
                     return Err(syn::Error::new(t.span(), "Unexpected #[derive attribute]"));
                 }
-
-                dbg!(t);
             }
         }
 
