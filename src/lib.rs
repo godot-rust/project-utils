@@ -6,9 +6,9 @@
 //! It currently does this by scanning the project sources for types that derive
 //! `NativeClass` and generates one `.gdns` file for each type.
 
-mod scan;
 mod generate;
+mod scan;
 
-pub use scan::scan_crate;
-pub use generate::Builder as Generator;
 pub use generate::BuildMode;
+pub use generate::Builder as Generator;
+pub use scan::scan_crate;

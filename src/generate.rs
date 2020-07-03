@@ -90,7 +90,7 @@ impl Builder {
     /// Set the build mode of the crate.
     ///
     /// This will affect the path the `gdnlib` resource points to.
-    pub fn build_mode(mut self,  mode: BuildMode) -> Self {
+    pub fn build_mode(mut self, mode: BuildMode) -> Self {
         self.with_build_mode(mode);
         self
     }
@@ -101,13 +101,20 @@ impl Builder {
     ///
     /// This function panics if the `godot_project_dir` has not been set.
     pub fn build(self, classes: crate::scan::Classes) -> Result<(), std::io::Error> {
-        let lib_name = self.lib_name
+        let lib_name = self
+            .lib_name
             .or_else(|| std::env::var("CARGO_PKG_NAME").ok())
             .expect("Package name not given and unable to find");
-        let godot_project_dir = self.godot_project_dir.and_then(|path| path.canonicalize().ok()).expect("Godot project dir not given");
-        let godot_resource_output_dir = self.godot_resource_output_dir
-            .and_then(|path| path.canonicalize().ok()).unwrap_or_else(|| godot_project_dir.join("native"));
-        let target_dir = self.target_dir
+        let godot_project_dir = self
+            .godot_project_dir
+            .and_then(|path| path.canonicalize().ok())
+            .expect("Godot project dir not given");
+        let godot_resource_output_dir = self
+            .godot_resource_output_dir
+            .and_then(|path| path.canonicalize().ok())
+            .unwrap_or_else(|| godot_project_dir.join("native"));
+        let target_dir = self
+            .target_dir
             .and_then(|path| path.canonicalize().ok())
             .or_else(|| {
                 let dir = std::env::var("CARGO_TARGET_DIR").ok()?;
@@ -116,11 +123,13 @@ impl Builder {
             .or_else(|| {
                 let dir = std::env::var("OUT_DIR").ok()?;
                 let out_path = PathBuf::from(&dir);
-                
+
                 // target/{debug/release}/build/{crate}/out
                 out_path.join("../../../../").canonicalize().ok()
-            }).expect("Target dir not given and unable to find");
-        let build_mode = self.build_mode
+            })
+            .expect("Target dir not given and unable to find");
+        let build_mode = self
+            .build_mode
             .or_else(|| {
                 let profile = std::env::var("PROFILE").ok()?;
                 match profile.as_str() {
@@ -128,13 +137,14 @@ impl Builder {
                     "debug" => Some(BuildMode::Debug),
                     _ => None,
                 }
-            }).expect("Build mode not given and unable to find");
+            })
+            .expect("Build mode not given and unable to find");
 
         std::fs::create_dir_all(&godot_resource_output_dir)?;
         rerun_if_changed(&godot_resource_output_dir);
 
         let gdnlib_path = godot_resource_output_dir.join(format!("{}.gdnlib", lib_name));
-        
+
         {
             let output_base_path = match build_mode {
                 BuildMode::Debug => target_dir.join("debug"),
@@ -143,7 +153,7 @@ impl Builder {
 
             let rel_output_base_path = pathdiff::diff_paths(&output_base_path, &godot_project_dir)
                 .expect("Unable to create relative path between Godot project and library output");
-            
+
             let prefix;
             let output_path;
 
@@ -163,7 +173,6 @@ impl Builder {
 
             std::fs::write(&gdnlib_path, gdnlib)?;
             rerun_if_changed(&gdnlib_path);
-
         }
 
         for name in classes {
@@ -173,9 +182,8 @@ impl Builder {
             rerun_if_changed(&path);
         }
 
-
         Ok(())
-    } 
+    }
 }
 
 fn rerun_if_changed(path: &Path) {
@@ -203,7 +211,7 @@ fn common_binary_outputs(base: &Path, name: &str) -> Binaries {
 
 fn generate_gdnlib(path_prefix: &str, binaries: Binaries) -> String {
     format!(
-r#"[entry]
+        r#"[entry]
 
 X11.64="{prefix}{x11}"
 OSX.64="{prefix}{osx}"
@@ -229,7 +237,7 @@ reloadable=true"#,
 
 fn generate_gdns(gdnlib_path: &Path, name: &str) -> String {
     format!(
-r#"[gd_resource type="NativeScript" load_steps=2 format=2]
+        r#"[gd_resource type="NativeScript" load_steps=2 format=2]
 
 [ext_resource path="{gdnlib}" type="GDNativeLibrary" id=1]
 
