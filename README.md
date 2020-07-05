@@ -7,8 +7,10 @@ types that derive `NativeClass` from a cargo build script.
 
 ### Example
 
+The following code in the `build.rs` (or any cargo build script) will
+automatically generate the Godot resources when the Rust code changes.
+
 ```rust
-/// Inside `build.rs` file
 use gdnative_project_utils::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{

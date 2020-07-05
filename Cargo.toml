@@ -3,6 +3,12 @@ name = "gdnative-project-utils"
 version = "0.1.0"
 authors = ["The godot-rust developers"]
 edition = "2018"
+description = "Utilies for working with godot-rust GDNative projects"
+documentation = "https://docs.rs/crate/gdnative-project-utils"
+repository = "https://github.com/godot-rust/project-utils"
+license = "MIT"
+
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
