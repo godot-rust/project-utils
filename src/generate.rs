@@ -187,7 +187,7 @@ impl Builder {
 }
 
 fn rerun_if_changed(path: &Path) {
-    print!("cargo:rerun-if-changed={}", path.display());
+    println!("cargo:rerun-if-changed={}", path.display());
 }
 
 struct Binaries {
