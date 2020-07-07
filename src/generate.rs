@@ -171,14 +171,31 @@ impl Builder {
 
             let gdnlib = generate_gdnlib(prefix, binaries);
 
-            std::fs::write(&gdnlib_path, gdnlib)?;
+            let do_write_file = match std::fs::read_to_string(&gdnlib_path) {
+                Ok(contents) => contents != gdnlib,
+                Err(_) => true,
+            };
+
+            if do_write_file {
+                std::fs::write(&gdnlib_path, gdnlib)?;
+            }
+
             rerun_if_changed(&gdnlib_path);
         }
 
         for name in classes {
             let content = generate_gdns(&gdnlib_path, &name);
             let path = godot_resource_output_dir.join(format!("{}.gdns", &name));
-            std::fs::write(&path, content)?;
+
+            let do_write_file = match std::fs::read_to_string(&path) {
+                Ok(existing) => existing != content,
+                Err(_) => true,
+            };
+
+            if do_write_file {
+                std::fs::write(&path, content)?;
+            }
+
             rerun_if_changed(&path);
         }
 
