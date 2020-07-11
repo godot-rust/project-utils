@@ -17,3 +17,4 @@ ignore = "0.4"
 syn = { version = "1.0", features = ["full", "visit"] }
 proc-macro2 = "1.0"
 pathdiff = "0.2"
+path-slash = "0.1"
