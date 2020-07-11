@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use path_slash::PathExt;
+use std::path::{Path, PathBuf};
 
 /// Build mode of the crate
 #[derive(Copy, Clone, Debug)]
@@ -185,7 +185,7 @@ impl Builder {
         }
 
         let rel_gdnlib_path = pathdiff::diff_paths(&gdnlib_path, &godot_project_dir)
-        .expect("Unable to create relative path between Godot project and library output");
+            .expect("Unable to create relative path between Godot project and library output");
 
         let prefix;
         let output_path;
