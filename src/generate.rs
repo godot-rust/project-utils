@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use path_slash::PathExt;
 
 /// Build mode of the crate
 #[derive(Copy, Clone, Debug)]
@@ -183,8 +184,24 @@ impl Builder {
             rerun_if_changed(&gdnlib_path);
         }
 
+        let rel_gdnlib_path = pathdiff::diff_paths(&gdnlib_path, &godot_project_dir)
+        .expect("Unable to create relative path between Godot project and library output");
+
+        let prefix;
+        let output_path;
+
+        if rel_gdnlib_path.starts_with("../") {
+            // not in the project folder, use an absolute path
+            prefix = "";
+            output_path = &gdnlib_path;
+        } else {
+            // output paths are inside the project folder, use a `res://` path
+            prefix = "res://";
+            output_path = &rel_gdnlib_path;
+        };
+
         for name in classes {
-            let content = generate_gdns(&gdnlib_path, &name);
+            let content = generate_gdns(&prefix, &output_path, &name);
             let path = godot_resource_output_dir.join(format!("{}.gdns", &name));
 
             let do_write_file = match std::fs::read_to_string(&path) {
@@ -246,24 +263,25 @@ load_once=true
 symbol_prefix="godot_"
 reloadable=true"#,
         prefix = path_prefix,
-        x11 = binaries.x11.display(),
-        osx = binaries.osx.display(),
-        win = binaries.windows.display(),
+        x11 = binaries.x11.to_slash_lossy(),
+        osx = binaries.osx.to_slash_lossy(),
+        win = binaries.windows.to_slash_lossy(),
     )
 }
 
-fn generate_gdns(gdnlib_path: &Path, name: &str) -> String {
+fn generate_gdns(path_prefix: &str, gdnlib_path: &Path, name: &str) -> String {
     format!(
         r#"[gd_resource type="NativeScript" load_steps=2 format=2]
 
-[ext_resource path="{gdnlib}" type="GDNativeLibrary" id=1]
+[ext_resource path="{prefix}{gdnlib}" type="GDNativeLibrary" id=1]
 
 [resource]
 class_name = "{name}"
 script_class_name = "{name}"
 library = ExtResource( 1 )
 "#,
-        gdnlib = gdnlib_path.display(),
+        prefix = path_prefix,
+        gdnlib = gdnlib_path.to_slash_lossy(),
         name = name,
     )
 }
