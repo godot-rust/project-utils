@@ -69,14 +69,14 @@ impl Builder {
     }
 
     /// Set the name of the crate.
-    pub fn with_lib_name(&mut self, name: impl AsRef<String>) {
+    pub fn with_lib_name(&mut self, name: impl AsRef<str>) {
         let name = name.as_ref().to_string();
 
         self.lib_name = Some(name);
     }
 
     /// Set the name of the crate.
-    pub fn lib_name(mut self, name: impl AsRef<String>) -> Self {
+    pub fn lib_name(mut self, name: impl AsRef<str>) -> Self {
         self.with_lib_name(name);
         self
     }
@@ -147,37 +147,30 @@ impl Builder {
         let gdnlib_path = godot_resource_output_dir.join(format!("{}.gdnlib", lib_name));
 
         {
-            let output_base_path = match build_mode {
-                BuildMode::Debug => target_dir.join("debug"),
-                BuildMode::Release => target_dir.join("release"),
-            };
+            let target_base_path = target_dir;
 
-            let rel_output_base_path = pathdiff::diff_paths(&output_base_path, &godot_project_dir)
+            let target_rel_path = pathdiff::diff_paths(&target_base_path, &godot_project_dir)
                 .expect("Unable to create relative path between Godot project and library output");
 
             let prefix;
             let output_path;
 
-            if rel_output_base_path.starts_with("../") {
+            if target_rel_path.starts_with("../") {
                 // not in the project folder, use an absolute path
                 prefix = "";
-                output_path = output_base_path;
+                output_path = target_base_path;
             } else {
                 // output paths are inside the project folder, use a `res://` path
                 prefix = "res://";
-                output_path = rel_output_base_path;
+                output_path = target_rel_path;
             };
 
-            let binaries = common_binary_outputs(&output_path, &lib_name);
+            let binaries = common_binary_outputs(&output_path, build_mode, &lib_name);
 
-            let gdnlib = generate_gdnlib(prefix, binaries);
+            let file_exists = gdnlib_path.exists() && gdnlib_path.is_file();
 
-            let do_write_file = match std::fs::read_to_string(&gdnlib_path) {
-                Ok(contents) => contents != gdnlib,
-                Err(_) => true,
-            };
-
-            if do_write_file {
+            if !file_exists {
+                let gdnlib = generate_gdnlib(prefix, binaries);
                 std::fs::write(&gdnlib_path, gdnlib)?;
             }
 
@@ -201,15 +194,12 @@ impl Builder {
         };
 
         for name in classes {
-            let content = generate_gdns(&prefix, &output_path, &name);
             let path = godot_resource_output_dir.join(format!("{}.gdns", &name));
 
-            let do_write_file = match std::fs::read_to_string(&path) {
-                Ok(existing) => existing != content,
-                Err(_) => true,
-            };
+            let file_exists = path.exists() && path.is_file();
 
-            if do_write_file {
+            if !file_exists {
+                let content = generate_gdns(&prefix, &output_path, &name);
                 std::fs::write(&path, content)?;
             }
 
@@ -228,25 +218,39 @@ struct Binaries {
     x11: PathBuf,
     osx: PathBuf,
     // TODO
-    //
-    // android: PathBuf,
     // ios: PathBuf,
     windows: PathBuf,
+    android_aarch64: PathBuf,
+    android_armv7: PathBuf,
 }
 
-fn common_binary_outputs(base: &Path, name: &str) -> Binaries {
-    Binaries {
-        x11: base.join(format!("lib{}.so", name)),
-        osx: base.join(format!("lib{}.dylib", name)),
+fn common_binary_outputs(target: &Path, mode: BuildMode, name: &str) -> Binaries {
+    let mode_path = match mode {
+        BuildMode::Debug => "debug",
+        BuildMode::Release => "release",
+    };
 
-        windows: base.join(format!("{}.dll", name)),
+    Binaries {
+        x11: target.join(mode_path).join(format!("lib{}.so", name)),
+        osx: target.join(mode_path).join(format!("lib{}.dylib", name)),
+
+        windows: target.join(mode_path).join(format!("{}.dll", name)),
+        android_armv7: target
+            .join("armv7-linux-androideabi")
+            .join(mode_path)
+            .join(format!("lib{}.so", name)),
+        android_aarch64: target
+            .join("aarch64-linux-android")
+            .join(mode_path)
+            .join(format!("lib{}.so", name)),
     }
 }
 
 fn generate_gdnlib(path_prefix: &str, binaries: Binaries) -> String {
     format!(
         r#"[entry]
-
+Android.armeabi-v7a="{prefix}{android_armv7}"
+Android.arm64-v8a="{prefix}{android_aarch64}"
 X11.64="{prefix}{x11}"
 OSX.64="{prefix}{osx}"
 Windows.64="{prefix}{win}"
@@ -263,6 +267,8 @@ load_once=true
 symbol_prefix="godot_"
 reloadable=true"#,
         prefix = path_prefix,
+        android_armv7 = binaries.android_armv7.to_slash_lossy(),
+        android_aarch64 = binaries.android_aarch64.to_slash_lossy(),
         x11 = binaries.x11.to_slash_lossy(),
         osx = binaries.osx.to_slash_lossy(),
         win = binaries.windows.to_slash_lossy(),

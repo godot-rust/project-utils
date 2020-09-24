@@ -11,4 +11,4 @@ mod scan;
 
 pub use generate::BuildMode;
 pub use generate::Builder as Generator;
-pub use scan::scan_crate;
+pub use scan::{scan_crate, Classes};
