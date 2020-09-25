@@ -222,6 +222,8 @@ struct Binaries {
     windows: PathBuf,
     android_aarch64: PathBuf,
     android_armv7: PathBuf,
+    android_x86: PathBuf,
+    android_x86_64: PathBuf,
 }
 
 fn common_binary_outputs(target: &Path, mode: BuildMode, name: &str) -> Binaries {
@@ -243,6 +245,14 @@ fn common_binary_outputs(target: &Path, mode: BuildMode, name: &str) -> Binaries
             .join("aarch64-linux-android")
             .join(mode_path)
             .join(format!("lib{}.so", name)),
+        android_x86: target
+            .join("i686-linux-android")
+            .join(mode_path)
+            .join(format!("lib{}.so", name)),
+        android_x86_64: target
+            .join("x86_64-linux-android")
+            .join(mode_path)
+            .join(format!("lib{}.so", name)),
     }
 }
 
@@ -251,12 +261,18 @@ fn generate_gdnlib(path_prefix: &str, binaries: Binaries) -> String {
         r#"[entry]
 Android.armeabi-v7a="{prefix}{android_armv7}"
 Android.arm64-v8a="{prefix}{android_aarch64}"
+Android.x86="{prefix}{android_x86}"
+Android.x86_64="{prefix}{android_x86_64}"
 X11.64="{prefix}{x11}"
 OSX.64="{prefix}{osx}"
 Windows.64="{prefix}{win}"
 
 [dependencies]
 
+Android.armeabi-v7a=[  ]
+Android.arm64-v8a=[  ]
+Android.x86=[  ]
+Android.x86_64=[  ]
 X11.64=[  ]
 OSX.64=[  ]
 
@@ -269,6 +285,8 @@ reloadable=true"#,
         prefix = path_prefix,
         android_armv7 = binaries.android_armv7.to_slash_lossy(),
         android_aarch64 = binaries.android_aarch64.to_slash_lossy(),
+        android_x86 = binaries.android_x86.to_slash_lossy(),
+        android_x86_64 = binaries.android_x86_64.to_slash_lossy(),
         x11 = binaries.x11.to_slash_lossy(),
         osx = binaries.osx.to_slash_lossy(),
         win = binaries.windows.to_slash_lossy(),
