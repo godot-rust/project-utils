@@ -19,6 +19,7 @@ pub fn scan_crate(dir: impl AsRef<Path>) -> Result<Classes, ScanError> {
         let path = file.into_path();
 
         if path.extension() == Some(&rs_extension) {
+            rerun_if_changed(&path);
             paths.push(path);
         }
     }
@@ -157,5 +158,11 @@ fn find_classes(file: &syn::File) -> Result<HashSet<syn::Ident>, syn::Error> {
         }
 
         Err(err)
+    }
+}
+
+fn rerun_if_changed(path: &Path) {
+    if cfg!(feature = "build_script") {
+        println!("cargo:rerun-if-changed={}", path.display());
     }
 }

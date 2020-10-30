@@ -142,7 +142,6 @@ impl Builder {
             .expect("Build mode not given and unable to find");
 
         std::fs::create_dir_all(&godot_resource_output_dir)?;
-        rerun_if_changed(&godot_resource_output_dir);
 
         let gdnlib_path = godot_resource_output_dir.join(format!("{}.gdnlib", lib_name));
 
@@ -173,8 +172,6 @@ impl Builder {
                 let gdnlib = generate_gdnlib(prefix, binaries);
                 std::fs::write(&gdnlib_path, gdnlib)?;
             }
-
-            rerun_if_changed(&gdnlib_path);
         }
 
         let rel_gdnlib_path = pathdiff::diff_paths(&gdnlib_path, &godot_project_dir)
@@ -202,16 +199,10 @@ impl Builder {
                 let content = generate_gdns(&prefix, &output_path, &name);
                 std::fs::write(&path, content)?;
             }
-
-            rerun_if_changed(&path);
         }
 
         Ok(())
     }
-}
-
-fn rerun_if_changed(path: &Path) {
-    println!("cargo:rerun-if-changed={}", path.display());
 }
 
 struct Binaries {
@@ -231,6 +222,10 @@ fn common_binary_outputs(target: &Path, mode: BuildMode, name: &str) -> Binaries
         BuildMode::Debug => "debug",
         BuildMode::Release => "release",
     };
+
+    // NOTE: If a crate has a hyphen in the name, at least on Linux the resulting library
+    // will have it replaced with an underscore. I assume other platforms do the same?
+    let name = name.replace("-", "_");
 
     Binaries {
         x11: target.join(mode_path).join(format!("lib{}.so", name)),
