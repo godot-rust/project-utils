@@ -34,6 +34,8 @@ fn gdnlib_target_in_project() {
 
 #[test]
 fn gdnlib_target_outside_of_project() {
+    use path_slash::PathExt;
+
     let godot_proj_dir = tempfile::tempdir().unwrap();
     let target_dir = tempfile::tempdir().unwrap();
     let asset_dir = godot_proj_dir.path().join("native");
@@ -55,23 +57,24 @@ fn gdnlib_target_outside_of_project() {
 
     let content = std::fs::read_to_string(&gdnlib_path).unwrap();
 
+    // Use the same canocialize function as the generator for target path comparison
+    let target_dir = dunce::canonicalize(target_dir.path())
+        .unwrap()
+        .to_slash()
+        .unwrap();
+
     // make sure it doesn't use `res://`
 
     // check linux
-    assert!(content.contains(&format!(
-        "=\"{}/debug/libgenerator_test.so\"",
-        target_dir.path().display()
-    )));
+    assert!(content.contains(&format!("=\"{}/debug/libgenerator_test.so\"", target_dir)));
+
     // check android aarch64
     assert!(content.contains(&format!(
         "=\"{}/aarch64-linux-android/debug/libgenerator_test.so\"",
-        target_dir.path().display()
+        target_dir
     )));
     // check windows, the path should still be with forward slashes
-    assert!(content.contains(&format!(
-        "=\"{}/debug/generator_test.dll\"",
-        target_dir.path().display()
-    )));
+    assert!(content.contains(&format!("=\"{}/debug/generator_test.dll\"", target_dir)));
 }
 
 #[test]

@@ -108,25 +108,25 @@ impl Builder {
             .expect("Package name not given and unable to find");
         let godot_project_dir = self
             .godot_project_dir
-            .and_then(|path| path.canonicalize().ok())
+            .and_then(|path| dunce::canonicalize(path).ok())
             .expect("Godot project dir not given");
         let godot_resource_output_dir = self
             .godot_resource_output_dir
-            .and_then(|path| path.canonicalize().ok())
+            .and_then(|path| dunce::canonicalize(path).ok())
             .unwrap_or_else(|| godot_project_dir.join("native"));
         let target_dir = self
             .target_dir
-            .and_then(|path| path.canonicalize().ok())
+            .and_then(|path| dunce::canonicalize(path).ok())
             .or_else(|| {
                 let dir = std::env::var("CARGO_TARGET_DIR").ok()?;
-                PathBuf::from(dir).canonicalize().ok()
+                dunce::canonicalize(PathBuf::from(dir)).ok()
             })
             .or_else(|| {
                 let dir = std::env::var("OUT_DIR").ok()?;
                 let out_path = PathBuf::from(&dir);
 
                 // target/{debug/release}/build/{crate}/out
-                out_path.join("../../../../").canonicalize().ok()
+                dunce::canonicalize(out_path.join("../../../../")).ok()
             })
             .expect("Target dir not given and unable to find");
         let build_mode = self
