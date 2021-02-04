@@ -1,6 +1,6 @@
 [package]
 name = "gdnative-project-utils"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["The godot-rust developers"]
 edition = "2018"
 description = "Utilies for working with godot-rust GDNative projects"
