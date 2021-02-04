@@ -8,6 +8,13 @@ pub enum BuildMode {
     Release,
 }
 
+/// The filetype of the GDNativeLibrary
+#[derive(Copy, Clone, Debug)]
+pub enum LibFormat {
+    Gdnlib,
+    Tres,
+}
+
 /// A builder type that holds all necessary information about the project to
 /// generate files in all the right places.
 #[derive(Default)]
@@ -17,6 +24,7 @@ pub struct Builder {
     target_dir: Option<PathBuf>,
     lib_name: Option<String>,
     build_mode: Option<BuildMode>,
+    lib_format: Option<LibFormat>,
 }
 
 impl Builder {
@@ -65,6 +73,17 @@ impl Builder {
     /// artefacts.
     pub fn target_dir(mut self, dir: impl AsRef<Path>) -> Self {
         self.with_target_dir(dir);
+        self
+    }
+
+    /// Set the type of the GDNativeLibrary Format
+    pub fn with_lib_format(&mut self, lib_format: LibFormat) {
+        self.lib_format = Some(lib_format);
+    }
+
+    /// Set the type of the GDNativeLibrary Format
+    pub fn lib_format(mut self, lib_format: LibFormat) -> Self {
+        self.with_lib_format(lib_format);
         self
     }
 
@@ -143,7 +162,11 @@ impl Builder {
 
         std::fs::create_dir_all(&godot_resource_output_dir)?;
 
-        let gdnlib_path = godot_resource_output_dir.join(format!("{}.gdnlib", lib_name));
+        let lib_ext = match self.lib_format {
+            Some(LibFormat::Gdnlib) | None => "gdnlib",
+            Some(LibFormat::Tres) => "tres",
+        };
+        let gdnlib_path = godot_resource_output_dir.join(format!("{}.{}", lib_name, lib_ext));
 
         {
             let target_base_path = target_dir;
@@ -169,8 +192,11 @@ impl Builder {
             let file_exists = gdnlib_path.exists() && gdnlib_path.is_file();
 
             if !file_exists {
-                let gdnlib = generate_gdnlib(prefix, binaries);
-                std::fs::write(&gdnlib_path, gdnlib)?;
+                let content = match self.lib_format {
+                    Some(LibFormat::Gdnlib) | None => generate_gdnlib(prefix, binaries),
+                    Some(LibFormat::Tres) => generate_tres(prefix, binaries),
+                };
+                std::fs::write(&gdnlib_path, content)?;
             }
         }
 
@@ -249,6 +275,36 @@ fn common_binary_outputs(target: &Path, mode: BuildMode, name: &str) -> Binaries
             .join(mode_path)
             .join(format!("lib{}.so", name)),
     }
+}
+
+fn generate_tres(path_prefix: &str, binaries: Binaries) -> String {
+    format!(
+        r#"[gd_resource type="GDNativeLibrary" format=2]
+
+[resource]
+entry/Android.armeabi-v7a="{prefix}{android_armv7}"
+entry/Android.arm64-v8a="{prefix}{android_aarch64}"
+entry/Android.x86="{prefix}{android_x86}"
+entry/Android.x86_64="{prefix}{android_x86_64}"
+entry/X11.64="{prefix}{x11}"
+entry/OSX.64="{prefix}{osx}"
+entry/Windows.64="{prefix}{win}"
+dependency/Android.armeabi-v7a=[  ]
+dependency/Android.arm64-v8a=[  ]
+dependency/Android.x86=[  ]
+dependency/Android.x86_64=[  ]
+dependency/X11.64=[  ]
+dependency/OSX.64=[  ]
+"#,
+        prefix = path_prefix,
+        android_armv7 = binaries.android_armv7.to_slash_lossy(),
+        android_aarch64 = binaries.android_aarch64.to_slash_lossy(),
+        android_x86 = binaries.android_x86.to_slash_lossy(),
+        android_x86_64 = binaries.android_x86_64.to_slash_lossy(),
+        x11 = binaries.x11.to_slash_lossy(),
+        osx = binaries.osx.to_slash_lossy(),
+        win = binaries.windows.to_slash_lossy(),
+    )
 }
 
 fn generate_gdnlib(path_prefix: &str, binaries: Binaries) -> String {

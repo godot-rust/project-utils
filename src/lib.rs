@@ -9,6 +9,6 @@
 mod generate;
 mod scan;
 
-pub use generate::BuildMode;
 pub use generate::Builder as Generator;
+pub use generate::{BuildMode, LibFormat};
 pub use scan::{scan_crate, Classes};
