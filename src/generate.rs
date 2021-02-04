@@ -143,7 +143,7 @@ impl Builder {
 
         std::fs::create_dir_all(&godot_resource_output_dir)?;
 
-        let gdnlib_path = godot_resource_output_dir.join(format!("{}.gdnlib", lib_name));
+        let gdnlib_path = godot_resource_output_dir.join(format!("{}.tres", lib_name));
 
         {
             let target_base_path = target_dir;
@@ -169,8 +169,8 @@ impl Builder {
             let file_exists = gdnlib_path.exists() && gdnlib_path.is_file();
 
             if !file_exists {
-                let gdnlib = generate_gdnlib(prefix, binaries);
-                std::fs::write(&gdnlib_path, gdnlib)?;
+                let content = generate_tres(prefix, binaries);
+                std::fs::write(&gdnlib_path, content)?;
             }
         }
 
@@ -251,32 +251,25 @@ fn common_binary_outputs(target: &Path, mode: BuildMode, name: &str) -> Binaries
     }
 }
 
-fn generate_gdnlib(path_prefix: &str, binaries: Binaries) -> String {
+fn generate_tres(path_prefix: &str, binaries: Binaries) -> String {
     format!(
-        r#"[entry]
-Android.armeabi-v7a="{prefix}{android_armv7}"
-Android.arm64-v8a="{prefix}{android_aarch64}"
-Android.x86="{prefix}{android_x86}"
-Android.x86_64="{prefix}{android_x86_64}"
-X11.64="{prefix}{x11}"
-OSX.64="{prefix}{osx}"
-Windows.64="{prefix}{win}"
+        r#"[gd_resource type="GDNativeLibrary" format=2]
 
-[dependencies]
-
-Android.armeabi-v7a=[  ]
-Android.arm64-v8a=[  ]
-Android.x86=[  ]
-Android.x86_64=[  ]
-X11.64=[  ]
-OSX.64=[  ]
-
-[general]
-
-singleton=false
-load_once=true
-symbol_prefix="godot_"
-reloadable=true"#,
+[resource]
+entry/Android.armeabi-v7a="{prefix}{android_armv7}"
+entry/Android.arm64-v8a="{prefix}{android_aarch64}"
+entry/Android.x86="{prefix}{android_x86}"
+entry/Android.x86_64="{prefix}{android_x86_64}"
+entry/X11.64="{prefix}{x11}"
+entry/OSX.64="{prefix}{osx}"
+entry/Windows.64="{prefix}{win}"
+dependency/Android.armeabi-v7a=[  ]
+dependency/Android.arm64-v8a=[  ]
+dependency/Android.x86=[  ]
+dependency/Android.x86_64=[  ]
+dependency/X11.64=[  ]
+dependency/OSX.64=[  ]
+"#,
         prefix = path_prefix,
         android_armv7 = binaries.android_armv7.to_slash_lossy(),
         android_aarch64 = binaries.android_aarch64.to_slash_lossy(),
