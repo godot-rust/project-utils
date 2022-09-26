@@ -131,8 +131,10 @@ impl Builder {
             .expect("Godot project dir not given");
         let godot_resource_output_dir = self
             .godot_resource_output_dir
+            .or_else(|| Some(godot_project_dir.join("native")))
+            .and_then(|path| std::fs::create_dir_all(&path).ok().map(|_| path))
             .and_then(|path| dunce::canonicalize(path).ok())
-            .unwrap_or_else(|| godot_project_dir.join("native"));
+            .expect("Unable to create godot_resource_output_dir");
         let target_dir = self
             .target_dir
             .and_then(|path| dunce::canonicalize(path).ok())
@@ -159,8 +161,6 @@ impl Builder {
                 }
             })
             .expect("Build mode not given and unable to find");
-
-        std::fs::create_dir_all(&godot_resource_output_dir)?;
 
         let lib_ext = match self.lib_format {
             Some(LibFormat::Gdnlib) | None => "gdnlib",
